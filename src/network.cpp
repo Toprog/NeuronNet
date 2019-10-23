@@ -7,6 +7,7 @@ void Network::resize(const size_t &n, double inhib) {
     if (n <= old) return;
     size_t nfs(inhib*(n-old)+.5);
     set_default_params({{"FS", nfs}}, old);
+    neighboursDP.resize(n);
 }
 
 void Network::set_default_params(const std::map<std::string, size_t> &types,
@@ -127,4 +128,57 @@ void Network::print_traj(const int time, const std::map<std::string, size_t> &_n
                 break;
             }
     (*_out) << std::endl;
+}
+
+std::pair<size_t, double> Network::degree(const size_t& index)
+{
+	std::vector<std::pair<size_t, double> > nb(neighbors(index));
+	double intensity(0.0);
+	for(auto element: nb){
+		intensity+=element.second;
+	}
+	return {nb.size(), intensity };
+}
+
+neighbourlist Network::neighbors(const size_t& index)
+{	
+	if(neighboursDP[index].empty()){
+	for (auto I = links.begin(); I != links.end(); I++){
+		if((I->first).first == index){
+			neighboursDP[index].push_back({(I->first).second, I->second});
+		}
+	}
+}
+		return neighboursDP[index];
+	
+}
+
+std::set<size_t> Network::step(const std::vector<double>& thalamus)
+{
+	std::set<size_t> firingneurons;
+	for (size_t i(0); i< neurons.size(); ++i){
+		if(neurons[i].firing()){
+			firingneurons.insert(i);
+			neurons[i].reset();
+		}
+	}
+	for (size_t i(0); i< neurons.size(); ++i){
+		double result(0.0);
+		neighbourlist nb(neighbors(i));
+		for(size_t n(0); n< nb.size(); ++n){
+			if(neurons[nb[n].first].firing()){
+				result+= nb[n].second;
+			}
+			
+		}
+		if(neurons[i].is_inhibitory()){
+			result += thalamus[i]*0.4;
+		}
+		else{
+		result += thalamus[i];
+	}
+		neurons[i].input(result);
+		neurons[i].step();
+	}
+	return firingneurons;
 }
