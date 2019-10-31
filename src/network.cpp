@@ -143,10 +143,8 @@ std::pair<size_t, double> Network::degree(const size_t& index)
 neighbourlist Network::neighbors(const size_t& index)
 {	
 	if(neighboursDP[index].empty()){
-	for (auto I = links.begin(); I != links.end(); I++){
-		if((I->first).first == index){
+	for (auto I = links.lower_bound({index,0}); (I->first).first == index; I++){
 			neighboursDP[index].push_back({(I->first).second, I->second});
-		}
 	}
 }
 		return neighboursDP[index];
